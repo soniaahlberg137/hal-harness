@@ -34,6 +34,8 @@ class BenchmarkManager:
             "colbench_backend_programming",
             "colbench_frontend_design",
             "replicatorbench",
+            "gsm8k",
+            "mmlu",
         ]
 
     def get_benchmark(
@@ -113,6 +115,11 @@ class BenchmarkManager:
             from .benchmarks.gsm8k import GSM8KBenchmark
 
             benchmark = GSM8KBenchmark(self.agent_dir, self.config)
+
+        elif benchmark_name == "mmlu":
+            from .benchmarks.mmlu import MMLUBenchmark
+
+            benchmark = MMLUBenchmark(self.agent_dir, self.config)
 
         else:
             raise ValueError(f"Unknown benchmark: {benchmark_name}")
