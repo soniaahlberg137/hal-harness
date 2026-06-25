@@ -348,6 +348,10 @@ MODEL_PRICES_DICT = {
         "prompt_tokens": 0.0,
         "completion_tokens": 0.0,
     },
+    "ollama:qwen2.5-coder:7b": {
+        "prompt_tokens": 0.0,
+        "completion_tokens": 0.0,
+    },
     "ollama:qwen2.5-coder:14b": {
         "prompt_tokens": 0.0,
         "completion_tokens": 0.0,

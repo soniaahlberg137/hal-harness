@@ -310,20 +310,23 @@ class AgentRunner:
 
         # delete previous calls from previous run if continuing for remaining tasks
         if self.continue_run and not self.ignore_errors and dataset:
-            logger.info("Cleaning up calls from previous run...")
-            # Fetch all calls once instead of once per task (O(1) vs O(N) API calls)
-            all_calls = weave_client.get_calls()
-            # Group calls by task_id for tasks that need cleanup
-            calls_to_delete = {}
-            for call in all_calls:
-                task_id = call.attributes.get("weave_task_id")
-                if task_id in dataset:
-                    calls_to_delete.setdefault(task_id, []).append(call.id)
-            # Delete calls for each task
-            for task_id, call_ids in calls_to_delete.items():
-                if call_ids:
-                    delete_calls(call_ids, weave_client)
-            logger.info(f"Cleaned up calls for {len(calls_to_delete)} tasks")
+            try:
+                logger.info("Cleaning up calls from previous run...")
+                # Fetch all calls once instead of once per task (O(1) vs O(N) API calls)
+                all_calls = weave_client.get_calls()
+                # Group calls by task_id for tasks that need cleanup
+                calls_to_delete = {}
+                for call in all_calls:
+                    task_id = call.attributes.get("weave_task_id")
+                    if task_id in dataset:
+                        calls_to_delete.setdefault(task_id, []).append(call.id)
+                # Delete calls for each task
+                for task_id, call_ids in calls_to_delete.items():
+                    if call_ids:
+                        delete_calls(call_ids, weave_client)
+                logger.info(f"Cleaned up calls for {len(calls_to_delete)} tasks")
+            except Exception as e:
+                logger.warning(f"Weave cleanup failed (non-fatal, continuing): {e}")
 
         if not dataset:
             logger.warning("No remaining tasks to run")
