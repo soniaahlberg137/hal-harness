@@ -43,7 +43,12 @@ GAIA_INSTRUCTION = """Please answer the question below. You should:
 """
 
 
-def _build_prompt(task: dict, system_prompt: str, benchmark_name: str) -> str:
+def _build_prompt(task: dict, system_prompt: str, benchmark_name: str, config_file_name: str = "") -> str:
+    config_hint = (
+        f'\nIMPORTANT: Before doing anything else, read your configuration file using:'
+        f'\n  import pathlib; instructions = pathlib.Path("{config_file_name}").read_text()'
+        f'\nFollow all instructions in that file for every task.\n'
+    ) if config_file_name else ""
     if benchmark_name == "gaia":
         attachment_hint = ""
         if task.get("file_name"):
@@ -51,9 +56,9 @@ def _build_prompt(task: dict, system_prompt: str, benchmark_name: str) -> str:
                 f"\nAttached file in your current directory: {task['file_name']}\n"
             )
         context = f"Additional context: {system_prompt}\n\n" if system_prompt else ""
-        return f"{GAIA_INSTRUCTION}{context}Here is the question:{attachment_hint}\n{task['Question']}"
+        return f"{GAIA_INSTRUCTION}{context}Here is the question:{attachment_hint}{config_hint}\n{task['Question']}"
     context = f"Additional context: {system_prompt}\n\n" if system_prompt else ""
-    return context + json.dumps(task)
+    return context + config_hint + json.dumps(task)
 
 
 def _connect_mcp_servers(tools_config: list, stack: contextlib.ExitStack) -> list:
@@ -107,16 +112,22 @@ def run(input: dict, **kwargs) -> dict:
     system_prompt = config.get("system_prompt", "")
     tools_config = config.get("tools") or []
     benchmark_name = kwargs.get("benchmark_name", "gaia")
+    config_file_name = config.get("config_file_name", "")
+    config_file_content = config.get("config_file_content", "")
+
+    if config_file_name and config_file_content:
+        with open(config_file_name, "w", encoding="utf-8") as fh:
+            fh.write(config_file_content)
 
     task_id, task = list(input.items())[0]
-    prompt = _build_prompt(task, system_prompt, benchmark_name)
+    prompt = _build_prompt(task, system_prompt, benchmark_name, config_file_name)
 
     model = LiteLLMModel(model_id=base_model, temperature=0)
 
     base_tools = [
         DuckDuckGoSearchTool(),
         VisitWebpageTool(),
-        PythonInterpreterTool(),
+        PythonInterpreterTool(authorized_imports=AUTHORIZED_IMPORTS),
     ]
 
     with contextlib.ExitStack() as stack:
